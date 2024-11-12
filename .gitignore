@@ -38,4 +38,8 @@ terraform.rc
 
 # ignore gc cred file
 onyx-outpost-*.json
+generated
+.venv
+
+
 
