@@ -6,7 +6,8 @@ app = Flask(__name__)
 
 myhost = os.uname()[1]
 
-host = '10.3.0.7:80'
+host = '10.3.0.10:5000'
+# host = '127.0.0.1:5001'
 lb_endpoint = host + '/' + 'backend_info'
 
 
