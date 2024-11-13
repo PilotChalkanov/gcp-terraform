@@ -1,247 +1,281 @@
-// Forwarding rule for Regional External Load Balancing
-resource "google_compute_forwarding_rule" "default" {
-  provider = google
-  depends_on = [google_compute_subnetwork.proxy]
-  name     = "website-forwarding-rule"
-  region   = "europe-west1"
-
-  ip_protocol           = "TCP"
-  load_balancing_scheme = "EXTERNAL_MANAGED"
-  port_range            = "80"
-  target                = google_compute_region_target_http_proxy.default.id
-  network               = google_compute_network.default.id
-  ip_address            = google_compute_address.default.address
-  network_tier          = "STANDARD"
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "4.51.0"
+    }
+  }
 }
 
-resource "google_compute_region_target_http_proxy" "default" {
-  provider = google
-
-  region  = "europe-west1"
-  name    = "website-proxy"
-  url_map = google_compute_region_url_map.default.id
+resource "google_compute_network" "vpc" {
+  name                    = "vpc"
+  auto_create_subnetworks = "false"
 }
 
-resource "google_compute_region_url_map" "default" {
-  provider = google
+resource "google_compute_subnetwork" "subnet" {
+  name          = "subnet"
+  ip_cidr_range = "10.0.3.0/24"
+  region        = "europe-west1"
+  network       = google_compute_network.vpc.id
+}
 
+resource "google_compute_firewall" "firewall-lb-1" {
+  project = "onyx-outpost-438905-q4"
+  name    = "firewall-lb-1"
+  network = "vpc"
+  // need the network created before the firewall rule
+  // I noticed sometimes terraform didn't detect the dependency, so making explicit.
+  depends_on = [google_compute_network.vpc]
+
+  allow {
+    protocol = "tcp"
+    ports = ["22", "1234", "5000"]
+  }
+  allow {
+    protocol = "icmp"
+  }
+  source_ranges = ["0.0.0.0/0"]
+}
+
+
+# frontend vms
+resource "google_compute_instance" "fe-vm1" {
+  name         = "fe-vm1"
+  machine_type = "e2-micro"
+  zone         = "europe-west1-c"
+  depends_on = [google_compute_network.vpc, google_compute_subnetwork.subnet]
+  network_interface {
+    // This indicates to give a public IP address
+    access_config {
+      network_tier = "STANDARD"
+
+    }
+    network    = google_compute_network.vpc.id
+    subnetwork = google_compute_subnetwork.subnet.id
+  }
+
+
+  boot_disk {
+    initialize_params {
+      image = "debian-12-bookworm-v20240312"
+    }
+  }
+  metadata = {
+    startup-script = <<-EOF
+    sudo apt-get update && \
+    sudo apt-get install -y git && \
+    sudo git clone https://github.com/PilotChalkanov/gcp-terraform.git && \
+    sudo apt-get install -y python3-flask && \
+    python3 gcp-terraform/tf-mod4-lab/backend/frontend-app.py
+  EOF
+  }
+
+}
+
+resource "google_compute_instance" "fe-vm2" {
+  name         = "fe-vm2"
+  machine_type = "e2-micro"
+  zone         = "europe-west1-c"
+  depends_on = [google_compute_network.vpc, google_compute_subnetwork.subnet]
+  network_interface {
+    // This indicates to give a public IP address
+    access_config {
+      network_tier = "STANDARD"
+
+    }
+    network    = google_compute_network.vpc.id
+    subnetwork = google_compute_subnetwork.subnet.id
+  }
+
+
+  boot_disk {
+    initialize_params {
+      image = "debian-12-bookworm-v20240312"
+    }
+  }
+  metadata = {
+    startup-script = <<-EOF
+    sudo apt-get update && \
+    sudo apt-get install -y git && \
+    sudo git clone https://github.com/PilotChalkanov/gcp-terraform.git && \
+    sudo apt-get install -y python3-flask &&\
+    python3 gcp-terraform/tf-mod4-lab/backend/frontend-app.py
+  EOF
+  }
+
+}
+
+# frontend instance group
+
+resource "google_compute_instance_group" "fe-group" {
+  name = "fe-group"
+  instances = [
+    google_compute_instance.fe-vm1.id,
+    google_compute_instance.fe-vm2.id
+  ]
+  named_port {
+    name = "fe-http"
+    port = 5000
+
+  }
+  zone = "europe-west1-c"
+}
+
+
+# backend vms
+resource "google_compute_instance" "be-vm1" {
+  name         = "be-vm1"
+  machine_type = "e2-micro"
+  zone         = "europe-west1-c"
+  depends_on = [google_compute_network.vpc, google_compute_subnetwork.subnet]
+  network_interface {
+    // This indicates to give a public IP address
+    access_config {
+      network_tier = "STANDARD"
+
+    }
+    network    = google_compute_network.vpc.id
+    subnetwork = google_compute_subnetwork.subnet.id
+  }
+
+
+  boot_disk {
+    initialize_params {
+      image = "debian-12-bookworm-v20240312"
+    }
+  }
+  metadata = {
+    startup-script = <<-EOF
+    sudo apt-get update && \
+    sudo apt-get install -y git && \
+    sudo git clone https://github.com/PilotChalkanov/gcp-terraform.git && \
+    sudo apt-get install -y python3-flask && \
+    python3 gcp-terraform/tf-mod4-lab/backend/backend-app.py
+  EOF
+  }
+
+}
+
+resource "google_compute_instance" "be-vm2" {
+  name         = "be-vm2"
+  machine_type = "e2-micro"
+  zone         = "europe-west1-c"
+  depends_on = [google_compute_network.vpc, google_compute_subnetwork.subnet]
+  network_interface {
+    // This indicates to give a public IP address
+    access_config {
+      network_tier = "STANDARD"
+
+    }
+    network    = google_compute_network.vpc.id
+    subnetwork = google_compute_subnetwork.subnet.id
+  }
+
+
+  boot_disk {
+    initialize_params {
+      image = "debian-12-bookworm-v20240312"
+    }
+  }
+  metadata = {
+    startup-script = <<-EOF
+    sudo apt-get update && \
+    sudo apt-get install -y git && \
+    sudo git clone https://github.com/PilotChalkanov/gcp-terraform.git && \
+    sudo apt-get install -y python3-flask\
+    python3 gcp-terraform/tf-mod4-lab/backend/backend-app.py
+  EOF
+  }
+
+}
+
+# backend instance group
+
+resource "google_compute_instance_group" "be-group" {
+  name = "be-group"
+  instances = [
+    google_compute_instance.be-vm1.id,
+    google_compute_instance.be-vm2.id
+  ]
+  named_port {
+    name = "be-http"
+    port = 5000
+
+  }
+  zone = "europe-west1-c"
+}
+
+resource "google_compute_region_url_map" "url-xlb" {
+  provider = google
   region          = "europe-west1"
-  name            = "website-map"
-  default_service = google_compute_region_backend_service.default.id
+  name            = "url-xlb"
+  default_service = google_compute_region_backend_service.website-fe.id
+
 }
 
-resource "google_compute_region_backend_service" "default" {
+resource "google_compute_subnetwork" "proxy_subnet" {
+  name          = "l7-ilb-proxy-subnet"
+  provider      = google
+  ip_cidr_range = "10.4.0.0/24"
+  region        = "europe-west1"
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  role          = "ACTIVE"
+  network       = google_compute_network.vpc.id
+}
+
+
+resource "google_compute_region_backend_service" "website-fe" {
   provider = google
 
   load_balancing_scheme = "EXTERNAL_MANAGED"
 
   backend {
-    group           = google_compute_region_instance_group_manager.rigm.instance_group
     balancing_mode  = "UTILIZATION"
-    capacity_scaler = 1.0
+    capacity_scaler = 0.8
+    group = google_compute_instance_group.fe-group.id
   }
 
   region      = "europe-west1"
-  name        = "website-backend"
+  name        = "website-fe"
   protocol    = "HTTP"
   timeout_sec = 10
 
-  health_checks = [google_compute_region_health_check.default.id]
+  port_name = "fe-http"
+
+  health_checks = [google_compute_region_health_check.fe-hc.id]
 }
 
-data "google_compute_image" "debian_image" {
-  provider = google
-  family   = "debian-11"
-  project  = "debian-cloud"
+resource "google_compute_region_health_check" "fe-hc" {
+  provider           = google
+  name               = "fe-hc"
+  check_interval_sec = 1
+  timeout_sec        = 1
+  region             = "europe-west1"
+
+
+
+  http_health_check {
+    port         = "5000"
+    request_path = "/health"
+
+  }
+}
+// Forwarding rule for External Network Load Balancing using Backend Services
+resource "google_compute_forwarding_rule" "fwd-rule-fe" {
+  provider              = google
+  name                  = "fwd-rule-fe"
+  region                = "europe-west1"
+  ip_protocol = "HTTP"
+  port_range            = 80
+  depends_on = [google_compute_subnetwork.proxy_subnet]
+  load_balancing_scheme = "EXTERNAL_MANAGED"
+  target                = google_compute_region_target_http_proxy.http-proxy-fe.id
+  network               = google_compute_network.vpc.id
 }
 
-resource "google_compute_region_instance_group_manager" "rigm" {
+resource "google_compute_region_target_http_proxy" "http-proxy-fe" {
+  name     = "http-proxy-fe"
   provider = google
   region   = "europe-west1"
-  name     = "website-rigm"
-  version {
-    instance_template = google_compute_instance_template.instance_template.id
-    name              = "primary"
-  }
-
-
-
-  base_instance_name = "internal-glb"
-  target_size        = 2
-}
-
-resource "google_compute_instance_template" "instance_template" {
-  provider     = google
-  name         = "template-website-backend"
-  machine_type = "e2-micro"
-
-  network_interface {
-    network    = google_compute_network.default.id
-    subnetwork = google_compute_subnetwork.default.id
-
-    access_config {
-      network_tier = "STANDART"
-    }
-  }
-
-  disk {
-    source_image = data.google_compute_image.debian_image.self_link
-    auto_delete  = true
-    boot         = true
-  }
-
-  metadata = {
-    startup-script = <<-EOF1
-      #! /bin/bash
-      set -euo pipefail
-
-      export DEBIAN_FRONTEND=noninteractive
-      apt-get update
-      apt-get install -y jq git  # Install jq and git only
-
-      NAME=$(curl -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/hostname")
-      IP=$(curl -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/ip")
-      METADATA=$(curl -f -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/attributes/?recursive=True" | jq 'del(.["startup-script"])')
-
-      # Clone the repository into /opt/repo (replace with your repo URL)
-      git clone https://github.com/eric-keller/npp-cloud
-
-      cat <<EOF > /opt/repo/metadata.html
-      <pre>
-      Name: $NAME
-      IP: $IP
-      Metadata: $METADATA
-      </pre>
-      EOF
-    EOF1
-
-  }
-
-  tags = ["allow-ssh", "load-balanced-backend"]
-}
-
-resource "google_compute_region_health_check" "default" {
-  depends_on = [google_compute_firewall.fw4]
-  provider = google
-
-  region = "europe-west1"
-  name   = "website-hc"
-  http_health_check {
-    port_specification = "USE_SERVING_PORT"
-  }
-}
-
-resource "google_compute_address" "default" {
-  name         = "website-ip-1"
-  provider     = google
-  region       = "europe-west1"
-  network_tier = "STANDARD"
-}
-
-resource "google_compute_firewall" "fw1" {
-  provider = google
-  name     = "website-fw-1"
-  network  = google_compute_network.default.id
-  source_ranges = ["10.1.2.0/24"]
-  allow {
-    protocol = "tcp"
-  }
-  allow {
-    protocol = "udp"
-  }
-  allow {
-    protocol = "icmp"
-  }
-  direction = "INGRESS"
-}
-
-resource "google_compute_firewall" "fw2" {
-  depends_on = [google_compute_firewall.fw1]
-  provider = google
-  name     = "website-fw-2"
-  network  = google_compute_network.default.id
-  source_ranges = ["0.0.0.0/0"]
-  allow {
-    protocol = "tcp"
-    ports = ["22"]
-  }
-  target_tags = ["allow-ssh"]
-  direction = "INGRESS"
-}
-
-resource "google_compute_firewall" "fw3" {
-  depends_on = [google_compute_firewall.fw2]
-  provider = google
-  name     = "website-fw-3"
-  network  = google_compute_network.default.id
-  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
-  allow {
-    protocol = "tcp"
-  }
-  target_tags = ["load-balanced-backend"]
-  direction = "INGRESS"
-}
-
-resource "google_compute_firewall" "fw4" {
-  depends_on = [google_compute_firewall.fw3]
-  provider = google
-  name     = "website-fw-4"
-  network  = google_compute_network.default.id
-  source_ranges = ["10.129.0.0/26"]
-  target_tags = ["load-balanced-backend"]
-  allow {
-    protocol = "tcp"
-    ports = ["80"]
-  }
-  allow {
-    protocol = "tcp"
-    ports = ["443"]
-  }
-  allow {
-    protocol = "tcp"
-    ports = ["8000"]
-  }
-  direction = "INGRESS"
-}
-
-resource "google_compute_firewall" "fw5" {
-  name        = "fw5-ingress"
-  network     = google_compute_network.default.id
-
-  // Ensure the network is created before this firewall rule
-  depends_on = [google_compute_network.default]
-
-  allow {
-    protocol  = "tcp"
-    ports     = ["80"]  // Allow HTTP (port 80)
-  }
-
-  source_ranges = ["0.0.0.0/0"]  // Allow inbound traffic from anywhere
-}
-
-
-
-resource "google_compute_network" "default" {
-  provider                = google
-  name                    = "website-net"
-  auto_create_subnetworks = false
-  routing_mode            = "REGIONAL"
-}
-
-resource "google_compute_subnetwork" "default" {
-  provider      = google
-  name          = "website-net-default"
-  ip_cidr_range = "10.1.2.0/24"
-  region        = "europe-west1"
-  network       = google_compute_network.default.id
-}
-
-resource "google_compute_subnetwork" "proxy" {
-  provider      = google
-  name          = "website-net-proxy"
-  ip_cidr_range = "10.129.0.0/26"
-  region        = "europe-west1"
-  network       = google_compute_network.default.id
-  purpose       = "REGIONAL_MANAGED_PROXY"
-  role          = "ACTIVE"
+  url_map  = google_compute_region_url_map.url-xlb.id
 }
