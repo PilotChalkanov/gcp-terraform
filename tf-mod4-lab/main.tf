@@ -15,7 +15,7 @@ resource "google_compute_network" "vpc" {
 resource "google_compute_subnetwork" "subnet" {
   name          = "subnet"
   ip_cidr_range = "10.0.3.0/24"
-  region        = "europe-west1"
+  region        = var.region
   network       = google_compute_network.vpc.id
 }
 
@@ -207,7 +207,7 @@ resource "google_compute_instance_group" "be-group" {
 
 resource "google_compute_region_url_map" "url-xlb" {
   provider = google
-  region          = "europe-west1"
+  region          = var.region
   name            = "url-xlb"
   default_service = google_compute_region_backend_service.website-fe.id
 
@@ -217,7 +217,7 @@ resource "google_compute_subnetwork" "proxy_subnet" {
   name          = "l7-ilb-proxy-subnet"
   provider      = google
   ip_cidr_range = "10.4.0.0/24"
-  region        = "europe-west1"
+  region        = var.region
   purpose       = "REGIONAL_MANAGED_PROXY"
   role          = "ACTIVE"
   network       = google_compute_network.vpc.id
@@ -235,7 +235,7 @@ resource "google_compute_region_backend_service" "website-fe" {
     group = google_compute_instance_group.fe-group.id
   }
 
-  region      = "europe-west1"
+  region      = var.region
   name        = "website-fe"
   protocol    = "HTTP"
   timeout_sec = 10
@@ -250,7 +250,7 @@ resource "google_compute_region_health_check" "fe-hc" {
   name               = "fe-hc"
   check_interval_sec = 1
   timeout_sec        = 1
-  region             = "europe-west1"
+  region             = var.region
 
 
 
@@ -264,7 +264,7 @@ resource "google_compute_region_health_check" "fe-hc" {
 resource "google_compute_forwarding_rule" "fwd-rule-fe" {
   provider              = google
   name                  = "fwd-rule-fe"
-  region                = "europe-west1"
+  region                = var.region
   ip_protocol = "HTTP"
   port_range            = 80
   depends_on = [google_compute_subnetwork.proxy_subnet]
@@ -276,6 +276,6 @@ resource "google_compute_forwarding_rule" "fwd-rule-fe" {
 resource "google_compute_region_target_http_proxy" "http-proxy-fe" {
   name     = "http-proxy-fe"
   provider = google
-  region   = "europe-west1"
+  region   = var.region
   url_map  = google_compute_region_url_map.url-xlb.id
 }
