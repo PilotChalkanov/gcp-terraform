@@ -207,6 +207,8 @@ resource "google_compute_instance" "tf-mod3-lab-vm2" {
 
 }
 
+
+
 //terraform show -json | jq
 
 // If you see something like this:

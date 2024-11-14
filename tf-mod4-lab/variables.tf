@@ -5,5 +5,9 @@ variable "namespace" {
 
 variable "region" {
   description = "GCP region"
-  default = "europe-west1"
+  default = "europe-central2"
+}
+
+variable "project_name" {
+  default = "onyx-outpost-438905-q4"
 }
