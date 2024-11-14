@@ -139,7 +139,7 @@ resource "google_compute_instance" "be-vm2" {
     sudo apt-get update && \
     sudo apt-get install -y git && \
     sudo git clone https://github.com/PilotChalkanov/gcp-terraform.git && \
-    sudo apt-get install -y python3-flask\
+    sudo apt-get install -y python3-flask &&\
     python3 gcp-terraform/tf-mod4-lab/backend/backend-app.py
   EOF
   }
