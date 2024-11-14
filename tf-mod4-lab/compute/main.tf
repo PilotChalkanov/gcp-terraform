@@ -11,7 +11,7 @@ resource "google_compute_instance" "fe-vm1" {
 
     }
     network    = var.vpc_id
-    subnetwork = var.subnet_id
+    subnetwork = var.subnet_fe_id
   }
 
 
@@ -43,7 +43,7 @@ resource "google_compute_instance" "fe-vm2" {
 
     }
     network    = var.vpc_id
-    subnetwork = var.subnet_id
+    subnetwork = var.subnet_fe_id
   }
 
 
@@ -93,7 +93,7 @@ resource "google_compute_instance" "be-vm1" {
 
     }
     network    = var.vpc_id
-    subnetwork = var.subnet_id
+    subnetwork = var.subnet_be_id
   }
 
 
@@ -125,7 +125,7 @@ resource "google_compute_instance" "be-vm2" {
 
     }
     network    = var.vpc_id
-    subnetwork = var.subnet_id
+    subnetwork = var.subnet_be_id
   }
 
 
@@ -160,4 +160,5 @@ resource "google_compute_instance_group" "be-group" {
 
   }
   zone = var.zone
+
 }

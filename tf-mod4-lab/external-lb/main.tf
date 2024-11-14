@@ -8,8 +8,8 @@ resource "google_compute_region_url_map" "url-xlb" {
 
 }
 
-resource "google_compute_subnetwork" "proxy_subnet" {
-  name          = "l7-ilb-proxy-subnet"
+resource "google_compute_subnetwork" "proxy" {
+  name          = "proxy"
   provider      = google
   ip_cidr_range = "10.4.0.0/24"
   region        = var.region
@@ -25,6 +25,7 @@ resource "google_compute_region_backend_service" "website-fe" {
   load_balancing_scheme = "EXTERNAL_MANAGED"
 
   backend {
+
     balancing_mode  = "UTILIZATION"
     capacity_scaler = 0.8
     group = var.vm_instance_group
@@ -61,8 +62,8 @@ resource "google_compute_forwarding_rule" "fwd-rule-fe" {
   name                  = "fwd-rule-fe"
   region                = var.region
   ip_protocol = "HTTP"
-  port_range            = 80
-  depends_on = [google_compute_subnetwork.proxy_subnet]
+  port_range            = 5000
+  depends_on = [google_compute_subnetwork.proxy]
   load_balancing_scheme = "EXTERNAL_MANAGED"
   target                = google_compute_region_target_http_proxy.http-proxy-fe.id
   network               = var.vpc_id
