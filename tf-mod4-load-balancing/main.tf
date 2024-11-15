@@ -214,6 +214,6 @@ resource "google_compute_forwarding_rule" "tf-mod4-xlb" {
 //terraform show -json | jq
 
 // If you see something like this:
-// │ Error: Error creating instance: googleapi: Error 400: Invalid value for field 'resource.networkInterfaces[0].subnetwork': 'projects/orbital-linker-398719/regions/us-central1/subnetworks/tf-mod4-lab-subnet1'. The referenced subnetwork resource cannot be found., invalid
+// │ Error: Error creating instance: googleapi: Error 400: Invalid value for field 'resource.networkInterfaces[0].subnetwork': 'projects/orbital-linker-398719/regions/us-central1/subnetworks/xlb-proxy-ilb-pass-trough-subnet1'. The referenced subnetwork resource cannot be found., invalid
 // There's a dependency that terraform didn't resolve, so it's trying to create X which depends on Y existing.
 // To solve, use depends_on

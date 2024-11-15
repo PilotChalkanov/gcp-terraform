@@ -26,7 +26,7 @@ resource "google_compute_instance" "fe-vm1" {
     sudo apt-get install -y git && \
     sudo git clone https://github.com/PilotChalkanov/gcp-terraform.git && \
     sudo apt-get install -y python3-flask && \
-    python3 gcp-terraform/tf-mod4-lab/backend/frontend-app.py
+    python3 gcp-terraform/backend/frontend-app.py
   EOF
   }
 
@@ -58,7 +58,7 @@ resource "google_compute_instance" "fe-vm2" {
     sudo apt-get install -y git && \
     sudo git clone https://github.com/PilotChalkanov/gcp-terraform.git && \
     sudo apt-get install -y python3-flask &&\
-    python3 gcp-terraform/tf-mod4-lab/backend/frontend-app.py
+    python3 gcp-terraform/backend/frontend-app.py
   EOF
   }
 
@@ -108,7 +108,7 @@ resource "google_compute_instance" "be-vm1" {
     sudo apt-get install -y git && \
     sudo git clone https://github.com/PilotChalkanov/gcp-terraform.git && \
     sudo apt-get install -y python3-flask && \
-    python3 gcp-terraform/tf-mod4-lab/backend/backend-app.py
+    python3 gcp-terraform/backend/backend-app.py
   EOF
   }
 
@@ -140,7 +140,7 @@ resource "google_compute_instance" "be-vm2" {
     sudo apt-get install -y git && \
     sudo git clone https://github.com/PilotChalkanov/gcp-terraform.git && \
     sudo apt-get install -y python3-flask &&\
-    python3 gcp-terraform/tf-mod4-lab/backend/backend-app.py
+    python3 gcp-terraform/backend/backend-app.py
   EOF
   }
 
