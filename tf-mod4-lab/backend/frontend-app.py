@@ -1,4 +1,6 @@
 import os
+
+import requests
 from requests import request
 
 from flask import Flask
@@ -6,8 +8,8 @@ app = Flask(__name__)
 
 myhost = os.uname()[1]
 
-host = 'http://10.4.0.10:5000'
-# host = '127.0.0.1:5001'
+host = 'http://10.0.2.10:5000'
+# host = 'http://127.0.0.1:5001'
 lb_endpoint = host + '/' + 'backend_info'
 
 
@@ -18,8 +20,9 @@ def health_check():
 
 @app.route('/hello')
 def backend_info():
-   resp = request("GET", lb_endpoint)
-   return resp
+   resp = requests.get(lb_endpoint)
+   print(resp.text)
+   return resp.text
 
 if __name__ == '__main__':
    host = "0.0.0.0"

@@ -37,7 +37,7 @@ module "external-lb" {
 module "internal-lb" {
   source = "./internal-lb"
   vpc_id = module.networking.vpc_id
-  subnet_id = module.external-lb.proxy
+  subnet_id = module.networking.subnet_be_id
   vm_instance_group = module.compute.be-instance-group
   namespace = var.namespace
   region = var.region
